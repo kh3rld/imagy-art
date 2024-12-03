@@ -7,6 +7,8 @@ import (
 	"os"
 )
 
+const asciiRamp = "@#S%?*+;:,. "
+
 // LoadImage loads an image from a file
 func LoadImage(filename string) (image.Image, error) {
 	file, err := os.Open(filename)
@@ -36,4 +38,10 @@ func Grayscale(img image.Image) *image.Gray {
 		}
 	}
 	return grayImg
+}
+
+// pixelToASCII maps a grayscale value to an ASCII character
+func pixelToASCII(gray uint8) string {
+	index := int(gray) * (len(asciiRamp) - 1) / 255
+	return string(asciiRamp[index])
 }
