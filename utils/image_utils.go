@@ -1,11 +1,14 @@
 package utils
 
 import (
+	"bufio"
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
 	"os"
 	"strings"
+	"sync"
 )
 
 const asciiRamp = "@#S%?*+;:,. "
@@ -63,10 +66,57 @@ func pixelToASCII(gray uint8) string {
 	return string(asciiRamp[index])
 }
 
+// RenderASCIIToImage renders ASCII art as an image and saves it as a PNG
+func RenderASCIIToImage(asciiArt string, file string, fontSize int) error {
+	lines := strings.Split(asciiArt, "\n")
+
+	for len(lines) > 0 && len(lines[len(lines)-1]) == 0 {
+		lines = lines[:len(lines)-1]
+	}
+
+	if len(lines) == 0 {
+		return fmt.Errorf("ASCII art is empty after trimming")
+	}
+
+	width := len(lines[0])
+	height := len(lines)
+
+	img := image.NewGray(image.Rect(0, 0, width*fontSize, height*fontSize))
+	var wg sync.WaitGroup
+	for y := 0; y < height; y++ {
+		wg.Add(1)
+		go func(y int) {
+			defer wg.Done()
+			for x := 0; x < width; x++ {
+				asciiChar := lines[y][x]
+				grayValue := (len(asciiRamp) - 1 - asciiRampIndex(asciiChar)) * 255 / (len(asciiRamp) - 1)
+				col := color.Gray{Y: uint8(grayValue)}
+				for i := 0; i < fontSize; i++ {
+					for j := 0; j < fontSize; j++ {
+						img.Set(x*fontSize+i, y*fontSize+j, col)
+					}
+				}
+			}
+		}(y)
+	}
+	wg.Wait()
+
+	outFile, err := os.Create(file)
+	if err != nil {
+		return err
+	}
+	defer outFile.Close()
+
+	writer := bufio.NewWriter(outFile)
+	defer writer.Flush()
+
+	return png.Encode(writer, img)
+}
+
 // asciiRampIndex returns the index of an ASCII character in the ASCII ramp
-func asciiRampIndex(c byte) int {
-	for i, v := range asciiRamp {
-		if v == rune(c) {
+func asciiRampIndex(char byte) int {
+	for i, c := range asciiRamp {
+		if c == rune(char) {
 			return i
 		}
 	}
