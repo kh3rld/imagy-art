@@ -62,3 +62,13 @@ func pixelToASCII(gray uint8) string {
 	index := int(gray) * (len(asciiRamp) - 1) / 255
 	return string(asciiRamp[index])
 }
+
+// asciiRampIndex returns the index of an ASCII character in the ASCII ramp
+func asciiRampIndex(c byte) int {
+	for i, v := range asciiRamp {
+		if v == rune(c) {
+			return i
+		}
+	}
+	return len(asciiRamp) - 1 // Default to lightest if character not found
+}
